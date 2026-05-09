@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МЕТЕОРАДАР / ROSHYDROMET</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="radar-icon">
+      <div class="radar-ping"></div>
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="18" cy="18" r="16" stroke="#00ff88" stroke-width="1" opacity=".3"/>
+        <circle cx="18" cy="18" r="10" stroke="#00ff88" stroke-width="1" opacity=".5"/>
+        <circle cx="18" cy="18" r="4"  stroke="#00ff88" stroke-width="1"/>
+        <line x1="18" y1="18" x2="18" y2="2" stroke="#00ff88" stroke-width="1.5"
+              stroke-linecap="round"/>
+        <circle cx="18" cy="18" r="2" fill="#00ff88"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <h1>МЕТЕОРАДАР · РОСГИДРОМЕТ</h1>
+      <p>RADAR OBSERVATION SYSTEM / RU-HMC</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-row">
+      <div class="stat-block">
+        <span class="label">ИСТОЧНИК</span>
+        <span class="value" id="srcLabel">—</span>
+      </div>
+      <div class="stat-block">
+        <span class="label">КАДРОВ</span>
+        <span class="value" id="totalFrames">—</span>
+      </div>
+      <div class="stat-block">
+        <span class="label">ЧАСТОТА</span>
+        <span class="value" id="fpsLabel">—</span>
+      </div>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      АКТИВЕН
+    </div>
+  </div>
+</header>
+<div class="app">
+  <aside class="side-panel">
+    <div class="panel-section">
+      <div class="panel-label">ИНДИКАТОР</div>
+      <div class="mini-radar">
+        <canvas id="miniRadar" width="130" height="130"></canvas>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">ПАРАМЕТРЫ</div>
+      <div class="info-row"><span class="k">ПРОДУКТ</span><span class="v">PHENOMENA</span></div>
+      <div class="info-row"><span class="k">ПОКРЫТИЕ</span><span class="v">РОССИЯ</span></div>
+      <div class="info-row"><span class="k">ТИП</span><span class="v">MOZAIKA</span></div>
+      <div class="info-row"><span class="k">ФОРМАТ</span><span class="v" id="dimLabel">—</span></div>
+      <div class="info-row"><span class="k">ПЕРИОД</span><span class="v">3 ЧАС</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">ШКАЛА DBZ</div>
+      <div class="legend">
+        <div class="legend-bar"></div>
+        <div class="legend-labels">
+          <span>0</span><span>15</span><span>30</span><span>45</span><span>60+</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <main class="center">
+    <div class="coord-bar">
+      <div>СЗУ: <span id="coordTL">55.8°N 37.3°E</span> — <span id="coordBR">45.2°N 60.1°E</span></div>
+      <div>МАСШТАБ: <span id="scaleLabel">1:1</span> &nbsp;|&nbsp; КАДР: <span id="frameTimestamp">—</span></div>
+    </div>
+    <div class="viewer-area">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="crosshair" style="inset:0;position:absolute;"></div>
+      <div class="zoom-wrapper" id="zoomWrapper">
+        <canvas id="radarCanvas"></canvas>
+        <div id="dropZone">
+          <div class="drop-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                 stroke="#00ff88" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="drop-title">ЗАГРУЗИТЬ GIF-ДАННЫЕ</div>
+          <div class="drop-sub">ПЕРЕТАЩИТЕ ФАЙЛ phenomena.gif</div>
+          <button class="pick-btn" id="pickBtn">[ ВЫБРАТЬ ФАЙЛ ]</button>
+          <input type="file" id="fileInput" accept=".gif,image/gif">
+        </div>
+        <div id="loadingOverlay">
+          <div class="spinner-ring"></div>
+          <span id="loadingText">ИНИЦИАЛИЗАЦИЯ…</span>
+          <div class="loading-bar"></div>
+        </div>
+      </div>
+    </div>
+    <div class="controls-bar">
+      <div class="ctrl-group">
+        <button class="ctrl-btn" id="btnFirst" disabled title="Первый">⏮</button>
+        <button class="ctrl-btn" id="btnPrev"  disabled title="Назад">◀</button>
+        <button class="ctrl-btn play-btn" id="btnPlay" disabled>▶</button>
+        <button class="ctrl-btn" id="btnNext"  disabled title="Вперёд">▶▌</button>
+        <button class="ctrl-btn" id="btnLast"  disabled title="Последний">⏭</button>
+      </div>
+      <div class="sep"></div>
+      <div class="timeline-wrap">
+        <input type="range" id="timeline" min="0" value="0" disabled>
+        <div class="timeline-labels">
+          <span>T-180мин</span><span>T-120мин</span><span>T-60мин</span><span>T±0</span>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <span class="frame-counter" id="frameInfo">—/—</span>
+      <div class="sep"></div>
+      <div class="speed-wrap">
+        СКОР
+        <select id="speedSelect">
+          <option value="0.25">×0.25</option>
+          <option value="0.5">×0.5</option>
+          <option value="1" selected>×1</option>
+          <option value="2">×2</option>
+          <option value="4">×4</option>
+        </select>
+      </div>
+      <div class="sep"></div>
+      <div class="zoom-group">
+        <button class="ctrl-btn" id="zoomOut">−</button>
+        <span class="zoom-label" id="zoomLabel">100%</span>
+        <button class="ctrl-btn" id="zoomIn">+</button>
+        <button class="ctrl-btn" id="zoomReset" title="Сбросить">⤢</button>
+      </div>
+      <div class="sep"></div>
+      <button class="reload-btn" id="reloadBtn">↩ ФАЙЛ</button>
+    </div>
+  </main>
+  <aside class="side-panel right">
+    <div class="panel-section">
+      <div class="panel-label">СИГНАЛ</div>
+      <div class="oscilloscope">
+        <canvas id="oscCanvas" width="172" height="48"></canvas>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">ЗОНИРОВАНИЕ</div>
+      <div class="info-row"><span class="k">ЦФО</span>     <span class="v">N/A</span></div>
+      <div class="info-row"><span class="k">СЗФО</span>    <span class="v">N/A</span></div>
+      <div class="info-row"><span class="k">ЮФО</span>     <span class="v">N/A</span></div>
+      <div class="info-row"><span class="k">ПФО</span>     <span class="v">N/A</span></div>
+      <div class="info-row"><span class="k">УФО</span>     <span class="v">N/A</span></div>
+      <div class="info-row"><span class="k">СФО</span>     <span class="v">N/A</span></div>
+      <div class="info-row"><span class="k">ДВФО</span>    <span class="v">N/A</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">УПРАВЛЕНИЕ ЗУМОМ</div>
+      <div style="font-size:9px;color:var(--text2);line-height:1.8;letter-spacing:.05em;">
+        <div>🖱 КОЛЕСО — МАСШТАБ</div>
+        <div>✋ ПЕРЕТАСК — СМЕЩЕНИЕ</div>
+        <div>👌 ЩИПОК — МОБИЛЬНЫЙ</div>
+        <div style="margin-top:6px;color:var(--green3);">ДИАПАЗОН: 100–600%</div>
+      </div>
+    </div>
+  </aside>
+</div>
+<footer>
+  <div>ROSHYDROMET · HMC RADAR COMPOSITE · phenomena.gif</div>
+  <div class="footer-right">
+    <div>ПРОЕКЦИЯ: <span>МЕРКАТОР</span></div>
+    <div>ЦПС: <span id="cpsLabel">—</span></div>
+    <div id="clockEl">—</div>
+  </div>
+</footer>
+<script src="index.js"></script>
+</body>
+</html>
